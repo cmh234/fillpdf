@@ -192,6 +192,8 @@ def write_fillable_pdf(input_pdf_path, output_pdf_path, data_dict, flatten=False
     flatten: bool
         Default is False meaning it will stay editable. True means the annotations
         will be uneditable.
+    need_appearances: bool
+        default to True for backward compatibility. True may overwite individual styles
     Returns
     ---------
     """
