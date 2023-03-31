@@ -292,7 +292,7 @@ def write_fillable_pdf(input_pdf_path, output_pdf_path, data_dict, flatten=False
                             if need_appearances == True:
                                 AP = data_dict[key]
                             else:
-                                AP = ''
+                                AP = pdfrw.PdfDict(N = UpdateAppearanceStream (target, data_dict[key]))
                             target.update( pdfrw.PdfDict( V=data_dict[key], AP=AP) )
                             if target[ANNOT_FIELD_KIDS_KEY]:
                                 for kid_target in target[ANNOT_FIELD_KIDS_KEY]:
@@ -306,6 +306,7 @@ def write_fillable_pdf(input_pdf_path, output_pdf_path, data_dict, flatten=False
 
 
 def UpdateAppearanceStream (target, field1value):
+    """works in browser but not acrobat"""
     # this depends on page orientation
     rct = target.Rect
     if not rct:
@@ -317,7 +318,7 @@ def UpdateAppearanceStream (target, field1value):
 
     # create Xobject
     xobj = pdfrw.IndirectPdfDict(
-    BBox =[0, 0, width, height],
+    BBox =[0, width, height, 0],
     FormType = 1,
     Resources = pdfrw.PdfDict(ProcSet =[pdfrw.PdfName.PDF, pdfrw.PdfName.Text]),
     Subtype = pdfrw.PdfName.Form,
@@ -333,7 +334,6 @@ def UpdateAppearanceStream (target, field1value):
      (''' + field1value + ''') Tj
     ET EMC'''
 
-    #put all together
     return xobj
 
 
