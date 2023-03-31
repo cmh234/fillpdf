@@ -289,14 +289,53 @@ def write_fillable_pdf(input_pdf_path, output_pdf_path, data_dict, flatten=False
                             annotation.update(pdfrw.PdfDict(V=pdfstr, AS=pdfstr))
                         elif target[ANNOT_FORM_type] == ANNOT_FORM_text:
                             # regular text field
-                            target.update( pdfrw.PdfDict( V=data_dict[key], AP=data_dict[key]) )
+                            if need_appearances == True:
+                                AP = data_dict[key]
+                            else:
+                                AP = ''
+                            target.update( pdfrw.PdfDict( V=data_dict[key], AP=AP) )
                             if target[ANNOT_FIELD_KIDS_KEY]:
-                                target[ANNOT_FIELD_KIDS_KEY][0].update( pdfrw.PdfDict( V=data_dict[key], AP=data_dict[key]) )
+                                for kid_target in target[ANNOT_FIELD_KIDS_KEY]:
+                                    kid_target.update( pdfrw.PdfDict( V=data_dict[key], AP=AP) )
+
                 if flatten == True:
                     annotation.update(pdfrw.PdfDict(Ff=1))
     if need_appearances == True:
         template_pdf.Root.AcroForm.update(pdfrw.PdfDict(NeedAppearances=pdfrw.PdfObject('true')))
     pdfrw.PdfWriter().write(output_pdf_path, template_pdf)
+
+
+def UpdateAppearanceStream (target, field1value):
+    # this depends on page orientation
+    rct = target.Rect
+    if not rct:
+        height = 14.4
+        width = 198
+    else:
+        height = round(float(rct[3]) - float(rct[1]), 2)
+        width = round(float(rct[2]) - float(rct[0]), 2)
+
+    # create Xobject
+    xobj = pdfrw.IndirectPdfDict(
+    BBox =[0, 0, width, height],
+    FormType = 1,
+    Resources = pdfrw.PdfDict(ProcSet =[pdfrw.PdfName.PDF, pdfrw.PdfName.Text]),
+    Subtype = pdfrw.PdfName.Form,
+    Type = pdfrw.PdfName.XObject
+    )
+
+    # assign a stream to it
+    xobj.stream = '''/Tx BMC
+    BT
+     /Helvetica 8.0 Tf
+     1.0 5.0 Td
+     0 g
+     (''' + field1value + ''') Tj
+    ET EMC'''
+
+    #put all together
+    return xobj
+
 
 
 def rotate_page(deg, input_pdf_path, output_map_path, page_number, **kwargs):
