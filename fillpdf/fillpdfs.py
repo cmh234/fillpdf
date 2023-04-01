@@ -5,6 +5,8 @@ from pdf2image import convert_from_path # Needs conda install -c conda-forge pop
 from PIL import Image
 from collections import OrderedDict
 
+import zlib
+
 ANNOT_KEY = '/Annots'               # key for all annotations within a page
 ANNOT_FIELD_KEY = '/T'              # Name of field. i.e. given ID of field
 ANNOT_FORM_type = '/FT'             # Form type (e.g. text/button)
@@ -250,7 +252,7 @@ def write_fillable_pdf(input_pdf_path, output_pdf_path, data_dict, flatten=False
                                             each.update(pdfrw.PdfDict(AS=val_str))
                                     if data_dict[key] not in options:
                                         if data_dict[key] != "None"  and data_dict[key] != "":
-                                            raise KeyError(f"{data_dict[key]} Not An Option, Options are {options}")
+                                            raise KeyError(f"{data_dict[key]} Not An Option, Options are {options} for {key}")
                                     else:
                                         if set(keys).intersection(set(temp_dict.values())):
                                             annotation.update(pdfrw.PdfDict(V=pdfrw.objects.pdfname.BasePdfName(f'/{data_dict[key]}')))
@@ -297,7 +299,6 @@ def write_fillable_pdf(input_pdf_path, output_pdf_path, data_dict, flatten=False
                             if target[ANNOT_FIELD_KIDS_KEY]:
                                 for kid_target in target[ANNOT_FIELD_KIDS_KEY]:
                                     kid_target.update( pdfrw.PdfDict( V=data_dict[key], AP=AP) )
-
                 if flatten == True:
                     annotation.update(pdfrw.PdfDict(Ff=1))
     if need_appearances == True:
@@ -317,15 +318,62 @@ def UpdateAppearanceStream (target, field1value):
         width = round(float(rct[2]) - float(rct[0]), 2)
 
     # create Xobject
+    # xobj = pdfrw.IndirectPdfDict(
+    # BBox =[0, width, height, 0],
+    # FormType = 1,
+    # Resources = pdfrw.PdfDict(ProcSet =[pdfrw.PdfName.PDF, pdfrw.PdfName.Text]),
+    # Subtype = pdfrw.PdfName.Form,
+    # Type = pdfrw.PdfName.XObject
+    # )
+    #
+    # # assign a stream to it
+    # xobj.stream = '''/Tx BMC
+    # BT
+    #  /Helvetica 8.0 Tf
+    #  1.0 5.0 Td
+    #  0 g
+    #  (''' + field1value + ''') Tj
+    # ET EMC'''
+
+    # return xobj
+
+
+
+
+    # create Xobject
     xobj = pdfrw.IndirectPdfDict(
-    BBox =[0, width, height, 0],
-    FormType = 1,
+    BBox = pdfrw.objects.pdfarray.PdfArray([0.0, 14.4, 198.0, 0.0]),
+    # Filter = pdfrw.objects.pdfname.BasePdfName(f'/FlateDecode'),
+    Length = 70,
+    Matrix = pdfrw.objects.pdfarray.PdfArray(['1.0', '0.0', '0.0', '1.0', '0.0', '0.0']),
     Resources = pdfrw.PdfDict(ProcSet =[pdfrw.PdfName.PDF, pdfrw.PdfName.Text]),
     Subtype = pdfrw.PdfName.Form,
-    Type = pdfrw.PdfName.XObject
+    Type=pdfrw.PdfName.XObject
     )
 
     # assign a stream to it
+    # xobj.stream = 'H\x89Òw\x0e6PH.V0Ð³´0\x01\x93¦PR¡89\x8fKß\x1d(\x9d^Ìe `h¢g¢`hi¡ \x0bf\x15¥r¥qé\x87T(8ù:+p¹\x82\x08\x80\x00\x03\x00tï\x10V'
+    # use pdfrw.uncompress.uncompress([kid_target.AP.N]) to decode stream
+    
+    xobj.stream = ''''q
+            0.984207 0.984695 0.985306 rg
+            0 0 198 14.4 re
+            f
+            Q
+            /Tx BMC 
+            q
+            1 1 196 12.4 re
+            W
+            n
+            BT
+            /MinionPro-Regular 11 Tf
+            0 g
+            (''' + field1value + ''') Tj
+            ET
+            Q
+            EMC
+            'C'''
+
     xobj.stream = '''/Tx BMC
     BT
      /Helvetica 8.0 Tf
@@ -335,8 +383,6 @@ def UpdateAppearanceStream (target, field1value):
     ET EMC'''
 
     return xobj
-
-
 
 def rotate_page(deg, input_pdf_path, output_map_path, page_number, **kwargs):
     """
